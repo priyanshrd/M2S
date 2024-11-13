@@ -1,0 +1,23 @@
+[
+    {
+        "_id": {"$oid": "64c8e4e1f123456789abcdef"},
+        "machine_id": "M_001",
+        "timestamp": "2024-11-13T14:30:00Z",
+        "signal_type": "Temperature",
+        "signal_value": 120.5
+    },
+    {
+        "_id": {"$oid": "64c8e4e1f123456789abcdea"},
+        "machine_id": "M_001",
+        "timestamp": "2024-11-13T14:31:00Z",
+        "signal_type": "Vibration",
+        "signal_value": 0.005
+    },
+    {
+        "_id": {"$oid": "64c8e4e1f123456789abcdeb"},
+        "machine_id": "M_001",
+        "timestamp": "2024-11-13T14:32:00Z",
+        "signal_type": "Speed",
+        "signal_value": 4500
+    }
+]
