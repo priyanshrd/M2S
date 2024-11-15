@@ -1,10 +1,10 @@
 import pymongo
 import mysql.connector
 from datetime import datetime
-import json  # Import json to handle complex structures
+import json
 
 # MongoDB setup
-mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
+mongo_client = pymongo.MongoClient("mongodb://fanuc:1234@localhost:27017/MTLINKi")
 mongo_db = mongo_client["MTLINKi"]
 mongo_collection_list = mongo_db.list_collection_names()
 
@@ -22,21 +22,18 @@ sql_cursor.execute("USE MTLINKi")
 
 for collection in mongo_collection_list:
     mongo_collection = mongo_db[collection]
-    # Get a sample document from MongoDB to infer fields
     sample_document = mongo_collection.find_one()
     if not sample_document:
         print(f"No data found in the MongoDB collection: {collection}")
         continue
 
-    # Escape the collection name using backticks
+    # Create table query
     create_table_query = f"CREATE TABLE IF NOT EXISTS `{collection}` ("
     field_definitions = []
 
-    # Infer field names and types from the sample document, including `_id`
     for field, value in sample_document.items():
-        # Escape field names using backticks
         if field == "_id":
-            field_definitions.append("`_id` VARCHAR(24) PRIMARY KEY")  # Using VARCHAR(24) for ObjectId as primary key
+            field_definitions.append("`_id` VARCHAR(24) PRIMARY KEY")
         elif isinstance(value, str):
             field_definitions.append(f"`{field}` VARCHAR(255)")
         elif isinstance(value, int):
@@ -45,42 +42,51 @@ for collection in mongo_collection_list:
             field_definitions.append(f"`{field}` FLOAT")
         elif isinstance(value, datetime):
             field_definitions.append(f"`{field}` DATETIME")
-        elif isinstance(value, (list, dict)):  # Handle complex structures
-            field_definitions.append(f"`{field}` TEXT")  # Store as JSON string
+        elif isinstance(value, (list, dict)):
+            field_definitions.append(f"`{field}` TEXT")
         else:
-            field_definitions.append(f"`{field}` TEXT")  # Default to TEXT for unknown types
+            field_definitions.append(f"`{field}` TEXT")
 
-    # Combine field definitions into the final query
     create_table_query += ", ".join(field_definitions) + ")"
     sql_cursor.execute(create_table_query)
 
-    # Retrieve data from MongoDB and insert into MySQL
+    # Insert data
     mongo_data = mongo_collection.find()
 
-    # Insert data into MySQL
     for document in mongo_data:
         columns = []
         values = []
-
         for field, value in document.items():
-            columns.append(f"`{field}`")  # Escape field names
-            # Handle value types
-            if field == "_id":
-                values.append(f"'{str(value)}'")  # Convert ObjectId to string and wrap in quotes
-            elif isinstance(value, datetime):
-                values.append(f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'")
-            elif isinstance(value, str):
-                # Escape single quotes in strings
-                values.append(f"'{value.replace('\'', '\\\'')}'")
-            elif isinstance(value, (list, dict)):
-                # Convert lists or dictionaries to JSON strings
-                values.append(f"'{json.dumps(value).replace('\'', '\\\'')}'")
-            else:
-                values.append(str(value))
+            columns.append(f"`{field}`")
 
-        # Construct the INSERT query
+            try:
+                if field == "_id":
+                    values.append(f"'{str(value)}'")
+                elif isinstance(value, datetime):
+                    values.append(f"'{value.strftime('%Y-%m-%d %H:%M:%S')}'")
+                elif isinstance(value, str):
+                    # Properly escape single quotes and handle potential binary data
+                    escaped_value = value.replace("'", "\\'")
+                    values.append(f"'{escaped_value}'")
+                elif isinstance(value, (list, dict)):
+                    # Convert to JSON string and escape properly
+                    json_value = json.dumps(value, ensure_ascii=False).replace("'", "\\'")
+                    values.append(f"'{json_value}'")
+                else:
+                    values.append(f"'{value}'" if value is not None else "NULL")
+            except Exception as e:
+                print(f"Error processing field '{field}': {e}")
+                values.append("NULL")  # Fallback to NULL for problematic fields
+
+    # Combine columns and values for the INSERT statement
         insert_query = f"INSERT IGNORE INTO `{collection}` ({', '.join(columns)}) VALUES ({', '.join(values)})"
-        sql_cursor.execute(insert_query)
+        try:
+            sql_cursor.execute(insert_query)
+        except mysql.connector.errors.ProgrammingError as e:
+            print(f"Error in collection '{collection}': {e}")
+        except mysql.connector.errors.DataError as e:
+            print(f"Data too large or malformed in collection '{collection}': {e}")
+
 
 # Commit and close the connection
 sql_connection.commit()
