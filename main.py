@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 
 # MongoDB setup
-mongo_client = pymongo.MongoClient("mongodb://fanuc:1234@localhost:27017/MTLINKi")
+mongo_client = pymongo.MongoClient("mongodb://username:password@localhost:27017/dbname")
 mongo_db = mongo_client["MTLINKi"]
 mongo_collection_list = mongo_db.list_collection_names()
 
