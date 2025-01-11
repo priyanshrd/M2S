@@ -1,0 +1,27 @@
+import pandas as pd
+import mysql.connector
+
+# Connect to MySQL
+sql_connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root@123",
+    database="MTLINKi"
+)
+sql_cursor = sql_connection.cursor()
+
+# List all tables in the database
+sql_cursor.execute("SHOW TABLES")
+tables = sql_cursor.fetchall()
+
+# Export each table to CSV
+for table in tables:
+    table_name = table[0]
+    df = pd.read_sql(f"SELECT * FROM `{table_name}`", sql_connection)
+    csv_file = f"{table_name}.csv"
+    df.to_csv(csv_file, index=False)
+    print(f"Exported {table_name} to {csv_file}")
+
+# Close connection
+sql_cursor.close()
+sql_connection.close()
