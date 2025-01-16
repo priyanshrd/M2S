@@ -4,6 +4,9 @@ This repository contains a Python script to automate the transfer of data from a
 
 ---
 
+[Integration of Mtlinki-MongoDB-SQL-PowerBI.pdf](https://github.com/user-attachments/files/18444847/Integration.of.Mtlinki-MongoDB-SQL-PowerBI.pdf)
+
+
 ## Setup Instructions
 
 ### Step 1: Setting Up MongoDB and MongoDB Compass
